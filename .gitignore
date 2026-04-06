@@ -41,3 +41,39 @@ Thumbs.db
 
 # Visual Studio 2015 cache/options directory
 .vs/
+
+# Сборка
+build/
+*.exe
+*.dll
+*.lib
+*.pdb
+*.obj
+*.ilk
+*.ipdb
+
+
+
+# Временные файлы
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# IDE
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# Тестовые файлы
+puzzle_test.db

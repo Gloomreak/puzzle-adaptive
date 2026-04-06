@@ -1,0 +1,136 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пятнашки - Интеллектуальная игра</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧩 Пятнашки</h1>
+            <p class="subtitle">Система адаптивного обучения</p>
+        </header>
+
+        <!-- Главное меню -->
+        <div id="main-menu" class="main-menu">
+            <div class="menu-section">
+                <h3>📊 Ваш уровень мастерства</h3>
+                <div id="mastery-level" class="mastery-display">Определяется...</div>
+            </div>
+
+            <div class="menu-section">
+                <h3>⚙️ Уровень сложности</h3>
+                <select id="difficulty-select" class="difficulty-select">
+                    <option value="auto">🤖 Авто (адаптивный)</option>
+                    <option value="very_easy">😊 Очень лёгкий (3×3)</option>
+                    <option value="easy">😃 Лёгкий (3×3-4×4)</option>
+                    <option value="medium" selected>😐 Средний (4×4)</option>
+                    <option value="hard">😟 Сложный (4×4-5×5)</option>
+                    <option value="very_hard">😰 Очень сложный (5×5)</option>
+                </select>
+            </div>
+
+            <div class="menu-section">
+                <h3>💡 Подсказки</h3>
+                <label class="toggle">
+                    <input type="checkbox" id="hints-toggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+                <span id="hints-text">Включены</span>
+            </div>
+
+            <button id="start-game-btn" class="btn btn-primary btn-large">🎮 Начать игру</button>
+
+            <div class="menu-stats">
+                <div class="mini-stat">
+                    <span>Игр:</span>
+                    <span id="menu-total-games">0</span>
+                </div>
+                <div class="mini-stat">
+                    <span>Побед:</span>
+                    <span id="menu-wins">0</span>
+                </div>
+                <div class="mini-stat">
+                    <span>Эффективность:</span>
+                    <span id="menu-efficiency">0%</span>
+                </div>
+            </div>
+        </div>
+
+
+
+        <div class="game-info">
+            <div class="info-block">
+                <span class="info-label">Уровень сложности:</span>
+                <span id="difficulty" class="info-value">-</span>
+            </div>
+            <div class="info-block">
+                <span class="info-label">Ходов:</span>
+                <span id="moves" class="info-value">0</span>
+            </div>
+            <div class="info-block">
+                <span class="info-label">Время:</span>
+                <span id="time" class="info-value">00:00</span>
+            </div>
+        </div>
+
+        <div id="game-board" class="game-board">
+            <!-- Плитки будут генерироваться JavaScript -->
+        </div>
+
+        <div class="controls">
+            <button id="new-game-btn" class="btn btn-primary">🎮 Новая игра</button>
+            <button id="hint-btn" class="btn btn-secondary">💡 Подсказка</button>
+            <button id="stats-btn" class="btn btn-secondary">📊 Статистика</button>
+        </div>
+
+        <div id="hint-message" class="message hint"></div>
+
+        <div id="stats-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>📊 Ваша статистика</h2>
+                <div id="stats-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Победное модальное окно -->
+    <div id="victory-modal" class="modal">
+        <div class="modal-content victory-content">
+            <span class="close-victory">&times;</span>
+            <div class="victory-icon">🏆</div>
+            <h2>Поздравляем!</h2>
+            <p class="victory-text">Головоломка решена!</p>
+
+            <div class="victory-stats">
+                <div class="victory-stat">
+                    <span class="stat-label">Ходов:</span>
+                    <span id="victory-moves" class="stat-value">0</span>
+                </div>
+                <div class="victory-stat">
+                    <span class="stat-label">Время:</span>
+                    <span id="victory-time" class="stat-value">00:00</span>
+                </div>
+                <div class="victory-stat">
+                    <span class="stat-label">Эффективность:</span>
+                    <span id="victory-efficiency" class="stat-value">0%</span>
+                </div>
+                <div class="victory-stat">
+                    <span class="stat-label">Уровень мастерства:</span>
+                    <span id="victory-mastery" class="stat-value">Новичок</span>
+                </div>
+            </div>
+
+            <div class="victory-buttons">
+                <button id="play-again-btn" class="btn btn-primary">🎮 Сыграть ещё раз</button>
+                <button id="view-stats-btn" class="btn btn-secondary">📊 Вся статистика</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>

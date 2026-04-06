@@ -1,0 +1,493 @@
+﻿* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+    width: 100%;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+h1 {
+    color: #333;
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    color: #666;
+    font-size: 1.1em;
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.info-block {
+    background: #f8f9fa;
+    padding: 15px 25px;
+    border-radius: 10px;
+    text-align: center;
+    min-width: 150px;
+}
+
+.info-label {
+    display: block;
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 5px;
+}
+
+.info-value {
+    display: block;
+    color: #333;
+    font-size: 1.3em;
+    font-weight: bold;
+}
+
+.game-board {
+    display: grid;
+    gap: 10px;
+    margin: 30px auto;
+    background: #e0e0e0;
+    padding: 10px;
+    border-radius: 15px;
+    max-width: 400px;
+}
+
+.tile {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.8em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+    .tile:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .tile:active {
+        transform: translateY(-1px);
+    }
+
+    .tile.empty {
+        background: transparent;
+        cursor: default;
+        box-shadow: none;
+    }
+
+    .tile.correct {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+
+.controls {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 15px 30px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+    }
+
+.btn-secondary {
+    background: #f8f9fa;
+    color: #333;
+}
+
+    .btn-secondary:hover {
+        background: #e9ecef;
+    }
+
+.message {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 1.1em;
+    font-weight: bold;
+    display: none;
+}
+
+    .message.success {
+        background: #d4edda;
+        color: #155724;
+        display: block;
+    }
+
+    .message.error {
+        background: #f8d7da;
+        color: #721c24;
+        display: block;
+    }
+
+/* Модальное окно */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 10% auto;
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 500px;
+    width: 90%;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+    .close:hover {
+        color: #000;
+    }
+
+#stats-content {
+    margin-top: 20px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.stat-label {
+    color: #666;
+}
+
+.stat-value {
+    font-weight: bold;
+    color: #333;
+}
+
+/* Адаптивность */
+@media (max-width: 600px) {
+    .container {
+        padding: 20px;
+    }
+
+    h1 {
+        font-size: 2em;
+    }
+
+    .tile {
+        font-size: 1.4em;
+    }
+}
+
+
+.message.hint {
+    background: #fff3cd;
+    color: #856404;
+    display: block;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+    }
+}
+
+/* Победное окно */
+.victory-content {
+    text-align: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    animation: victoryPop 0.5s ease;
+}
+
+@keyframes victoryPop {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.victory-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+    animation: bounce 1s ease infinite;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+.victory-text {
+    font-size: 1.3em;
+    margin-bottom: 30px;
+    opacity: 0.9;
+}
+
+.victory-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin: 30px 0;
+}
+
+.victory-stat {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 15px;
+    border-radius: 10px;
+}
+
+    .victory-stat .stat-label {
+        display: block;
+        font-size: 0.9em;
+        opacity: 0.8;
+        margin-bottom: 5px;
+    }
+
+    .victory-stat .stat-value {
+        display: block;
+        font-size: 1.5em;
+        font-weight: bold;
+    }
+
+.victory-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+    .victory-buttons .btn {
+        background: white;
+        color: #667eea;
+    }
+
+        .victory-buttons .btn:hover {
+            background: #f0f0f0;
+        }
+
+/* Главное меню */
+.main-menu {
+    text-align: center;
+    padding: 20px;
+}
+
+.menu-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 15px;
+    margin: 15px 0;
+}
+
+    .menu-section h3 {
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 1.1em;
+    }
+
+.mastery-display {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #667eea;
+    padding: 15px;
+    background: white;
+    border-radius: 10px;
+}
+
+.difficulty-select {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.1em;
+    border: 2px solid #667eea;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+}
+
+.btn-large {
+    padding: 20px 40px;
+    font-size: 1.3em;
+    margin: 20px 0;
+}
+
+.menu-stats {
+    display: flex;
+    justify-content: space-around;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    color: white;
+}
+
+.mini-stat {
+    text-align: center;
+}
+
+    .mini-stat span:first-child {
+        display: block;
+        font-size: 0.9em;
+        opacity: 0.8;
+    }
+
+    .mini-stat span:last-child {
+        display: block;
+        font-size: 1.3em;
+        font-weight: bold;
+    }
+
+/* Переключатель */
+.toggle {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+    vertical-align: middle;
+    margin: 0 10px;
+}
+
+    .toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.4s;
+    border-radius: 34px;
+}
+
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 26px;
+        width: 26px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+    }
+
+input:checked + .toggle-slider {
+    background-color: #667eea;
+}
+
+    input:checked + .toggle-slider:before {
+        transform: translateX(26px);
+    }
+
+/* Игровой экран */
+.game-screen {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
