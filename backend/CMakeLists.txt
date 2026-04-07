@@ -2,6 +2,8 @@
 
 project(puzzle_server)
 
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+
 find_package(Threads REQUIRED)
 
 # SQLite3 paths

@@ -31,7 +31,6 @@ const hintsToggle = document.getElementById('hints-toggle');
 let selectedDifficulty = 'auto';
 let hintsEnabled = true;
 
-
 // Показать победное окно
 function showVictory(data) {
     console.log('Showing victory modal...');
@@ -66,35 +65,38 @@ function showVictory(data) {
 
 // Обработчики для победного окна
 document.addEventListener('DOMContentLoaded', () => {
-    const closeVictory = document.querySelector('.close-victory');
-    const playAgainBtn = document.getElementById('play-again-btn');
-    const viewStatsBtn = document.getElementById('view-stats-btn');
+    const closeVictoryLocal = document.querySelector('.close-victory');
+    const playAgainBtnLocal = document.getElementById('play-again-btn');
+    const viewStatsBtnLocal = document.getElementById('view-stats-btn');
 
-    if (closeVictory) {
-        closeVictory.addEventListener('click', () => {
-            document.getElementById('victory-modal').style.display = 'none';
+    if (closeVictoryLocal) {
+        closeVictoryLocal.addEventListener('click', () => {
+            const vm = document.getElementById('victory-modal');
+            if (vm) vm.style.display = 'none';
         });
     }
 
-    if (playAgainBtn) {
-        playAgainBtn.addEventListener('click', () => {
-            document.getElementById('victory-modal').style.display = 'none';
+    if (playAgainBtnLocal) {
+        playAgainBtnLocal.addEventListener('click', () => {
+            const vm = document.getElementById('victory-modal');
+            if (vm) vm.style.display = 'none';
             createNewGame();
         });
     }
 
-    if (viewStatsBtn) {
-        viewStatsBtn.addEventListener('click', () => {
-            document.getElementById('victory-modal').style.display = 'none';
+    if (viewStatsBtnLocal) {
+        viewStatsBtnLocal.addEventListener('click', () => {
+            const vm = document.getElementById('victory-modal');
+            if (vm) vm.style.display = 'none';
             showStats();
         });
     }
 
     // Закрытие по клику вне окна
     window.addEventListener('click', (e) => {
-        const victoryModal = document.getElementById('victory-modal');
-        if (e.target === victoryModal) {
-            victoryModal.style.display = 'none';
+        const victoryModalEl = document.getElementById('victory-modal');
+        if (e.target === victoryModalEl) {
+            victoryModalEl.style.display = 'none';
         }
     });
 });
@@ -113,10 +115,10 @@ function saveGameStats(data) {
 }
 
 function setupEventListeners() {
-    newGameBtn.addEventListener('click', createNewGame);
-    statsBtn.addEventListener('click', showStats);
-    closeModal.addEventListener('click', () => {
-        statsModal.style.display = 'none';
+    if (newGameBtn) newGameBtn.addEventListener('click', createNewGame);
+    if (statsBtn) statsBtn.addEventListener('click', showStats);
+    if (closeModal) closeModal.addEventListener('click', () => {
+        if (statsModal) statsModal.style.display = 'none';
     });
     window.addEventListener('click', (e) => {
         if (e.target === statsModal) {
@@ -125,27 +127,27 @@ function setupEventListeners() {
     });
     if (closeVictory) {
         closeVictory.addEventListener('click', () => {
-            victoryModal.style.display = 'none';
+            if (victoryModal) victoryModal.style.display = 'none';
         });
     }
 
     if (playAgainBtn) {
         playAgainBtn.addEventListener('click', () => {
-            victoryModal.style.display = 'none';
+            if (victoryModal) victoryModal.style.display = 'none';
             createNewGame();
         });
     }
 
     if (viewStatsBtn) {
         viewStatsBtn.addEventListener('click', () => {
-            victoryModal.style.display = 'none';
+            if (victoryModal) victoryModal.style.display = 'none';
             showStats();
         });
     }
     if (startGameBtn) {
         startGameBtn.addEventListener('click', () => {
-            selectedDifficulty = difficultySelect.value;
-            hintsEnabled = hintsToggle.checked;
+            if (difficultySelect) selectedDifficulty = difficultySelect.value;
+            hintsEnabled = hintsToggle ? hintsToggle.checked : true;
             mainMenu.style.display = 'none';
             gameScreen.style.display = 'block';
             createNewGame();
@@ -161,8 +163,9 @@ function setupEventListeners() {
     if (hintsToggle) {
         hintsToggle.addEventListener('change', (e) => {
             hintsEnabled = e.target.checked;
-            document.getElementById('hints-text').textContent =
-                hintsEnabled ? 'Включены' : 'Выключены';
+            const hintsTextEl = document.getElementById('hints-text');
+            if (hintsTextEl) hintsTextEl.textContent = hintsEnabled ? 'Включены' : 'Выключены';
+            if (hintBtn) hintBtn.disabled = !hintsEnabled;
         });
     }
 }
@@ -173,25 +176,29 @@ async function loadMenuStats() {
         const response = await fetch('/api/stats');
         const stats = await response.json();
 
-        document.getElementById('menu-total-games').textContent = stats.totalGames || 0;
-        document.getElementById('menu-wins').textContent = stats.completedGames || 0;
-        document.getElementById('menu-efficiency').textContent =
-            ((stats.avgEfficiency || 0) * 100).toFixed(1) + '%';
+        const totalGamesEl = document.getElementById('menu-total-games');
+        const winsEl = document.getElementById('menu-wins');
+        const effEl = document.getElementById('menu-efficiency');
+        if (totalGamesEl) totalGamesEl.textContent = stats.totalGames || 0;
+        if (winsEl) winsEl.textContent = stats.completedGames || 0;
+        if (effEl) effEl.textContent = ((stats.avgEfficiency || 0) * 100).toFixed(1) + '%';
 
         // Определяем уровень мастерства
         const efficiency = stats.avgEfficiency || 0;
         let mastery = 'Новичок';
         let color = '#667eea';
 
-        if (efficiency > 0.8) { mastery = '🏆 Мастер'; color = '#ffd700'; }
-        else if (efficiency > 0.6) { mastery = '⭐ Эксперт'; color = '#38ef7d'; }
-        else if (efficiency > 0.4) { mastery = '📈 Продвинутый'; color = '#667eea'; }
-        else if (efficiency > 0.2) { mastery = '📚 Средний'; color = '#ffa500'; }
-        else { mastery = '🌱 Новичок'; color = '#ff6b6b'; }
+        if (efficiency > 0.8) { mastery = 'Мастер'; color = '#ffd700'; }
+        else if (efficiency > 0.6) { mastery = 'Эксперт'; color = '#38ef7d'; }
+        else if (efficiency > 0.4) { mastery = 'Продвинутый'; color = '#667eea'; }
+        else if (efficiency > 0.2) { mastery = 'Средний'; color = '#ffa500'; }
+        else { mastery = ' Новичок'; color = '#ff6b6b'; }
 
         const masteryEl = document.getElementById('mastery-level');
-        masteryEl.textContent = mastery;
-        masteryEl.style.color = color;
+        if (masteryEl) {
+            masteryEl.textContent = mastery;
+            masteryEl.style.color = color;
+        }
 
     } catch (error) {
         console.error('Ошибка загрузки статистики:', error);
@@ -201,7 +208,12 @@ async function loadMenuStats() {
 // Вызовите при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     loadMenuStats();
+    loadConfig();
     setupEventListeners();
+    // Инициализация состояния подсказок в UI
+    const hintsTextEl = document.getElementById('hints-text');
+    if (hintsTextEl) hintsTextEl.textContent = hintsEnabled ? 'Включены' : 'Выключены';
+    if (hintBtn) hintBtn.disabled = !hintsEnabled;
 });
 
 // Загрузка конфигурации
@@ -209,13 +221,19 @@ async function loadConfig() {
     try {
         const response = await fetch('/api/config');
         const config = await response.json();
-        difficultyElement.textContent = config.difficulty;
-        boardSize = config.gridSize;
+        if (difficultyElement) difficultyElement.textContent = config.difficulty;
+        boardSize = config.gridSize || boardSize;
+        // сервер может прислать enableHints
+        if (typeof config.enableHints !== 'undefined') {
+            hintsEnabled = config.enableHints;
+            if (hintBtn) hintBtn.disabled = !hintsEnabled;
+            const hintsTextEl = document.getElementById('hints-text');
+            if (hintsTextEl) hintsTextEl.textContent = hintsEnabled ? 'Включены' : 'Выключены';
+        }
     } catch (error) {
         console.error('Ошибка загрузки конфигурации:', error);
     }
 }
-
 
 // Создание новой игры
 async function createNewGame() {
@@ -255,9 +273,9 @@ async function createNewGame() {
     }
 }
 
-
 // Отрисовка игрового поля
 function renderBoard(board) {
+    if (!gameBoard) return;
     gameBoard.innerHTML = '';
     gameBoard.style.gridTemplateColumns = `repeat(${boardSize}, 1fr)`;
 
@@ -392,22 +410,21 @@ function stopTimer() {
 }
 
 // Показать сообщение
-// Показать сообщение
 function showMessage(text, type) {
-    const messageElement = document.getElementById('message');
-    const hintMessage = document.getElementById('hint-message');
+    const msgEl = document.getElementById('message');
+    const hintMsgEl = document.getElementById('hint-message');
 
-    // Используем hint-message если есть, иначе message
-    const targetElement = hintMessage || messageElement;
+    // Если подсказка отображается, показываем её там, иначе в общем сообщении
+    const targetElement = (hintMsgEl && hintMsgEl.style.display === 'block') ? hintMsgEl : msgEl;
 
     if (targetElement) {
         targetElement.textContent = text;
-        targetElement.className = 'message ' + type;
+        targetElement.className = 'message ' + (type || '');
         targetElement.style.display = 'block';
 
         // Скрываем через 5 секунд
         setTimeout(() => {
-            targetElement.style.display = 'none';
+            try { targetElement.style.display = 'none'; } catch (e) { }
         }, 5000);
     } else {
         console.log('Message:', text, type);
@@ -421,6 +438,7 @@ async function showStats() {
         const stats = await response.json();
 
         const content = document.getElementById('stats-content');
+        if (!content) return;
         content.innerHTML = `
             <div class="stat-row">
                 <span class="stat-label">Всего игр:</span>
@@ -446,31 +464,47 @@ async function showStats() {
             </div>
         `;
 
-        statsModal.style.display = 'block';
+        if (statsModal) statsModal.style.display = 'block';
     } catch (error) {
         console.error('Ошибка загрузки статистики:', error);
         showMessage('Ошибка загрузки статистики', 'error');
     }
 }
 
-
-hintBtn.addEventListener('click', async () => {
-    try {
-        const response = await fetch('/api/hint');
-        const data = await response.json();
-
-        if (data.success) {
-            hintMessage.textContent = data.description;
-            hintMessage.className = 'message hint';
-            hintMessage.style.display = 'block';
-
-            // Подсветить плитку
-            highlightTile(data.fromRow, data.fromCol);
+// Подсказки
+if (hintBtn) {
+    hintBtn.addEventListener('click', async () => {
+        if (!hintsEnabled) {
+            showMessage('Подсказки отключены', 'info');
+            return;
         }
-    } catch (error) {
-        console.error('Ошибка подсказки:', error);
-    }
-});
+        try {
+            const response = await fetch('/api/hint');
+            const data = await response.json();
+
+            if (data && data.success) {
+                if (hintMessage) {
+                    hintMessage.textContent = data.description || '';
+                    hintMessage.className = 'message hint';
+                    hintMessage.style.display = 'block';
+                }
+
+                // Подсветить откуда и куда (если есть)
+                if (typeof data.fromRow !== 'undefined' && data.fromRow !== -1) {
+                    highlightTile(data.fromRow, data.fromCol);
+                }
+                if (typeof data.toRow !== 'undefined' && data.toRow !== -1) {
+                    highlightTile(data.toRow, data.toCol);
+                }
+            } else {
+                showMessage('Нет подсказок', 'info');
+            }
+        } catch (error) {
+            console.error('Ошибка подсказки:', error);
+            showMessage('Ошибка подсказки', 'error');
+        }
+    });
+}
 
 function highlightTile(row, col) {
     const tiles = document.querySelectorAll('.tile');
@@ -483,5 +517,3 @@ function highlightTile(row, col) {
         }
     });
 }
-
-

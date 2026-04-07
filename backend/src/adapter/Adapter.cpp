@@ -126,12 +126,12 @@ std::string Adapter::getRecommendation(int userId, const Database::UserStats& st
 
 std::string Adapter::difficultyToString(DifficultyLevel level) {
     switch (level) {
-    case DifficultyLevel::VeryEasy:  return "Very Easy";
-    case DifficultyLevel::Easy:      return "Easy";
-    case DifficultyLevel::Medium:    return "Medium";
-    case DifficultyLevel::Hard:      return "Hard";
-    case DifficultyLevel::VeryHard:  return "Very Hard";
-    default:                         return "Unknown";
+    case DifficultyLevel::VeryEasy:  return "Очень легко";
+    case DifficultyLevel::Easy:      return "Легко";
+    case DifficultyLevel::Medium:    return "Средний";
+    case DifficultyLevel::Hard:      return "Сложный";
+    case DifficultyLevel::VeryHard:  return "Очень сложный";
+    default:                         return "Неизвестно";
     }
 }
 
@@ -206,7 +206,7 @@ Hint Adapter::getHint(int userId, const std::vector<std::vector<int>>& board) {
         for (auto& d : dirs) {
             int nr = emptyRow + d[0], nc = emptyCol + d[1];
             if (nr >= 0 && nr < size && nc >= 0 && nc < size && board[nr][nc] != 0) {
-                hint = { nr, nc, emptyRow, emptyCol, "Peremestite plitku " + std::to_string(board[nr][nc]) };
+                hint = { nr, nc, emptyRow, emptyCol, "Перемести плитку " + std::to_string(board[nr][nc]) };
                 return hint;
             }
         }
@@ -280,7 +280,7 @@ Hint Adapter::getHint(int userId, const std::vector<std::vector<int>>& board) {
 
                 if (newDist < oldDist) {
                     hint = { checkRow, checkCol, emptyRow, emptyCol,
-                           "Otlichno! Peremestite plitku " + std::to_string(val) + " k celi" };
+                           "Отлично! Перемести плитку " + std::to_string(val) + " k celi" };
                     return hint;
                 }
             }
@@ -317,7 +317,7 @@ Hint Adapter::getHint(int userId, const std::vector<std::vector<int>>& board) {
 
         if (!breaksSolved) {
             hint = { checkRow, checkCol, emptyRow, emptyCol,
-                   "Peremestite plitku " + std::to_string(val) };
+                   "Переместите плитку " + std::to_string(val) };
             return hint;
         }
     }
