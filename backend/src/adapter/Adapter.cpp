@@ -1,6 +1,7 @@
 ﻿#include "Adapter.h"
 #include <sstream>
 #include <cmath>
+#include <algorithm>
 
 Adapter::Adapter(Database& db) : db_(db) {}
 
@@ -12,13 +13,7 @@ AdaptiveConfig Adapter::getInitialConfig(int userId) {
     }
 
     // Новая игра - начинаем со среднего уровня
-    return {
-        .gridSize = 4,
-        .shuffleMoves = 100,
-        .difficulty = DifficultyLevel::Medium,
-        .enableHints = true,
-        .timeLimit = 0
-    };
+    return AdaptiveConfig{ 4, 100, DifficultyLevel::Medium, true, 0 };
 }
 
 AdaptiveConfig Adapter::adaptDifficulty(int userId, const Database::UserStats& stats) {
@@ -26,33 +21,30 @@ AdaptiveConfig Adapter::adaptDifficulty(int userId, const Database::UserStats& s
     int gridSize = suggestGridSize(level, stats.avgTime);
     int shuffleMoves = suggestShuffleMoves(level);
 
-    bool enableHints = (level == DifficultyLevel::VeryEasy || level == DifficultyLevel::Easy);
+    // Включаем подсказки для уровней до и включая Medium
+    bool enableHints = (level == DifficultyLevel::VeryEasy || level == DifficultyLevel::Easy || level == DifficultyLevel::Medium);
     int timeLimit = (level == DifficultyLevel::VeryHard) ? 300 : 0;
 
-    return {
-        .gridSize = gridSize,
-        .shuffleMoves = shuffleMoves,
-        .difficulty = level,
-        .enableHints = enableHints,
-        .timeLimit = timeLimit
-    };
+    return AdaptiveConfig{ gridSize, shuffleMoves, level, enableHints, timeLimit };
 }
 
 DifficultyLevel Adapter::calculateDifficulty(double efficiency, int totalGames) {
-    // Учитываем количество сыгранных игр для надёжности оценки
+    // Стабилизация оценки при небольшом числе игр:
+    // используем blend между текущей эффективностью и нейтральным значением 0.5
     double confidence = std::min(1.0, static_cast<double>(totalGames) / 10.0);
-    efficiency *= confidence;
+    double blended = efficiency * (0.5 + 0.5 * confidence) + 0.5 * (1.0 - confidence);
 
-    if (efficiency > 0.8) {
+    // Пороговые значения с >=, чтобы избежать "провалов" на границах
+    if (blended >= 0.85) {
         return DifficultyLevel::VeryHard;
     }
-    else if (efficiency > 0.6) {
+    else if (blended >= 0.7) {
         return DifficultyLevel::Hard;
     }
-    else if (efficiency > 0.4) {
+    else if (blended >= 0.45) {
         return DifficultyLevel::Medium;
     }
-    else if (efficiency > 0.2) {
+    else if (blended >= 0.25) {
         return DifficultyLevel::Easy;
     }
     else {
@@ -98,20 +90,20 @@ std::string Adapter::getRecommendation(int userId, const Database::UserStats& st
     std::ostringstream oss;
 
     if (stats.totalGames == 0) {
-        return "Добро пожаловать! Начните с лёгкого уровня. Эффективность рассчитывается как: (оптимальные ходы / ваши ходы) × штраф за ошибки.";
+        return "Добро пожаловать! Начните с лёгкого уровня. Эффективность рассчитывается как (оптимальные ходы / ваши ходы) × (1 - ошибки).";
     }
 
     auto config = adaptDifficulty(userId, stats);
 
     oss << "Ваш уровень: " << difficultyToString(config.difficulty) << ". ";
 
-    // Объясняем расчёт эффективности
-    oss << "Эффективность = (оптимальные ходы / ваши ходы) × (1 - ошибки) × (время). ";
+    // Объясняем расчёт эффективности кратко и по-русски
+    oss << "Эффективность = оптимальные ходы ÷ ваши ходы (с учётом ошибок). ";
 
-    if (stats.avgEfficiency > 0.7) {
+    if (stats.avgEfficiency >= 0.75) {
         oss << "Отличная работа! Попробуйте увеличить размер поля.";
     }
-    else if (stats.avgEfficiency < 0.3) {
+    else if (stats.avgEfficiency < 0.35) {
         oss << "Рекомендуем снизить сложность и включить подсказки.";
     }
     else if (stats.avgTime > 300) {
@@ -126,8 +118,8 @@ std::string Adapter::getRecommendation(int userId, const Database::UserStats& st
 
 std::string Adapter::difficultyToString(DifficultyLevel level) {
     switch (level) {
-    case DifficultyLevel::VeryEasy:  return "Очень легко";
-    case DifficultyLevel::Easy:      return "Легко";
+    case DifficultyLevel::VeryEasy:  return "Очень лёгкий";
+    case DifficultyLevel::Easy:      return "Лёгкий";
     case DifficultyLevel::Medium:    return "Средний";
     case DifficultyLevel::Hard:      return "Сложный";
     case DifficultyLevel::VeryHard:  return "Очень сложный";
@@ -136,19 +128,19 @@ std::string Adapter::difficultyToString(DifficultyLevel level) {
 }
 
 DifficultyLevel Adapter::stringToDifficulty(const std::string& str) {
-    if (str == "VeryEasy") return DifficultyLevel::VeryEasy;
-    if (str == "Easy") return DifficultyLevel::Easy;
-    if (str == "Medium") return DifficultyLevel::Medium;
-    if (str == "Hard") return DifficultyLevel::Hard;
-    if (str == "VeryHard") return DifficultyLevel::VeryHard;
+    // Принимаем как английские, так и русские обозначения
+    if (str == "VeryEasy" || str == "Very Easy" || str == "Очень лёгкий" || str == "Очень легкий") return DifficultyLevel::VeryEasy;
+    if (str == "Easy" || str == "Лёгкий" || str == "Легкий") return DifficultyLevel::Easy;
+    if (str == "Medium" || str == "Средний") return DifficultyLevel::Medium;
+    if (str == "Hard" || str == "Сложный") return DifficultyLevel::Hard;
+    if (str == "VeryHard" || str == "Very Hard" || str == "Очень сложный") return DifficultyLevel::VeryHard;
     return DifficultyLevel::Medium;
 }
-
 
 // подсказки
 Hint Adapter::getHint(int userId, const std::vector<std::vector<int>>& board) {
     Hint hint;
-    int size = board.size();
+    int size = static_cast<int>(board.size());
 
     // 1. Находим пустую клетку
     int emptyRow = -1, emptyCol = -1;
@@ -163,26 +155,25 @@ Hint Adapter::getHint(int userId, const std::vector<std::vector<int>>& board) {
         if (emptyRow != -1) break;
     }
 
-    // 2. СТРАТЕГИЯ: решаем ПОРЯДОВО
-    // Сначала ряд 0 (плитки 1,2,3,4), потом ряд 1 (5,6,7,8) и т.д.
-    // Для каждого ряда: сначала левую плитку, потом следующую
+    if (emptyRow == -1) {
+        hint.description = "Пустой клетки не найдено";
+        return hint;
+    }
 
-    // Находим какую плитку нужно ставить следующей
+    // 2. Стратегия: ищем первую неверную позицию в порядке обхода по строкам
     int targetValue = -1;
     int targetRow = -1, targetCol = -1;
 
     for (int r = 0; r < size; ++r) {
         for (int c = 0; c < size; ++c) {
-            // Последняя клетка должна быть пустой
             if (r == size - 1 && c == size - 1) {
                 if (board[r][c] != 0) {
-                    targetValue = 0;  // Нужна пустая клетка
+                    targetValue = 0; // хотим пустую в конце
                     targetRow = r;
                     targetCol = c;
                 }
                 continue;
             }
-
             int expected = r * size + c + 1;
             if (board[r][c] != expected) {
                 targetValue = expected;
@@ -194,25 +185,36 @@ Hint Adapter::getHint(int userId, const std::vector<std::vector<int>>& board) {
         if (targetValue != -1) break;
     }
 
-    // Если всё на местах - победа!
+    // Всё на местах
     if (targetValue == -1) {
-        hint.description = "Pobeda! Vse plitki na mestakh!";
+        hint.description = "Победа! Все плитки на местах!";
         return hint;
     }
 
-    // 3. Если нам нужна пустая клетка в конце - просто двигаем что угодно
+    // Если нужно освободить последнюю клетку
     if (targetValue == 0) {
         int dirs[4][2] = { {-1,0},{1,0},{0,-1},{0,1} };
         for (auto& d : dirs) {
             int nr = emptyRow + d[0], nc = emptyCol + d[1];
             if (nr >= 0 && nr < size && nc >= 0 && nc < size && board[nr][nc] != 0) {
-                hint = { nr, nc, emptyRow, emptyCol, "Перемести плитку " + std::to_string(board[nr][nc]) };
+                hint = { nr, nc, emptyRow, emptyCol, "Переместите плитку " + std::to_string(board[nr][nc]) };
                 return hint;
             }
         }
     }
 
-    // 4. Находим где сейчас целевая плитка
+    // 3. Рассматриваем только соседние с пустой клетки — это единственно допустимые ходы
+    std::vector<std::pair<int, int>> neighbors;
+    int dirsAll[4][2] = { {-1,0},{1,0},{0,-1},{0,1} };
+    for (int i = 0; i < 4; ++i) {
+        int nr = emptyRow + dirsAll[i][0];
+        int nc = emptyCol + dirsAll[i][1];
+        if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+            if (board[nr][nc] != 0) neighbors.emplace_back(nr, nc);
+        }
+    }
+
+    // 4. Находим, где сейчас целевая плитка
     int tileRow = -1, tileCol = -1;
     for (int r = 0; r < size; ++r) {
         for (int c = 0; c < size; ++c) {
@@ -225,119 +227,85 @@ Hint Adapter::getHint(int userId, const std::vector<std::vector<int>>& board) {
         if (tileRow != -1) break;
     }
 
-    // 5. Определяем приоритет движений
-    // Приоритет: сначала по вертикали к цели, потом по горизонтали
-    std::vector<std::pair<int, int>> priorities;
+    // 5. Оцениваем кандидатов — выбираем один лучший соседний ход
+    int bestFromR = -1, bestFromC = -1;
+    int bestToR = -1, bestToC = -1;
+    int bestDelta = -100000; // максимальное улучшение (oldDist - newDist)
+    bool foundTargetTileCandidate = false;
 
-    if (tileRow < targetRow) priorities.push_back({ 1, 0 });   // вниз
-    if (tileRow > targetRow) priorities.push_back({ -1, 0 });  // вверх
-    if (tileCol < targetCol) priorities.push_back({ 0, 1 });   // вправо
-    if (tileCol > targetCol) priorities.push_back({ 0, -1 });  // влево
-
-    // 6. Проверяем возможные ходы (только соседние с пустой!)
-    int dirs[4][2] = { {-1,0},{1,0},{0,-1},{0,1} };
-
-    // Сначала ищем ходы, которые приближают целевую плитку
-    for (auto& pref : priorities) {
-        for (auto& d : dirs) {
-            int checkRow = emptyRow + d[0];
-            int checkCol = emptyCol + d[1];
-
-            if (checkRow < 0 || checkRow >= size || checkCol < 0 || checkCol >= size)
-                continue;
-
-            int val = board[checkRow][checkCol];
-            if (val == 0) continue;
-
-            // Проверяем, не нарушим ли уже собранные ряды
-            bool breaksSolved = false;
-            for (int r = 0; r < size && !breaksSolved; ++r) {
-                for (int c = 0; c < size; ++c) {
-                    int cellVal = board[r][c];
-                    if (cellVal == 0) continue;
-
-                    int expected = r * size + c + 1;
-                    // Если плитка на месте И мы её двигаем И она из уже собранных
-                    if (cellVal == expected && r == checkRow && c == checkCol) {
-                        if (r < targetRow || (r == targetRow && c < targetCol)) {
-                            breaksSolved = true;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (breaksSolved) continue;
-
-            // Если это целевая плитка И мы двигаем её в правильном направлении
-            if (val == targetValue) {
-                int newRow = emptyRow;
-                int newCol = emptyCol;
-
-                // Проверяем, приближается ли она к цели
-                int oldDist = std::abs(checkRow - targetRow) + std::abs(checkCol - targetCol);
-                int newDist = std::abs(newRow - targetRow) + std::abs(newCol - targetCol);
-
-                if (newDist < oldDist) {
-                    hint = { checkRow, checkCol, emptyRow, emptyCol,
-                           "Отлично! Перемести плитку " + std::to_string(val) + " k celi" };
-                    return hint;
-                }
-            }
-        }
-    }
-
-    // 7. Если не нашли идеальный ход - ищем любой допустимый
-    for (auto& d : dirs) {
-        int checkRow = emptyRow + d[0];
-        int checkCol = emptyCol + d[1];
-
-        if (checkRow < 0 || checkRow >= size || checkCol < 0 || checkCol >= size)
-            continue;
-
-        int val = board[checkRow][checkCol];
+    for (auto& p : neighbors) {
+        int r = p.first, c = p.second;
+        int val = board[r][c];
         if (val == 0) continue;
 
-        // Проверяем, не нарушаем ли собранные
+        // Проверяем, не нарушим ли уже собранные позиции, если двинем эту плитку
         bool breaksSolved = false;
-        for (int r = 0; r < size && !breaksSolved; ++r) {
-            for (int c = 0; c < size; ++c) {
-                int cellVal = board[r][c];
+        for (int rr = 0; rr < size && !breaksSolved; ++rr) {
+            for (int cc = 0; cc < size; ++cc) {
+                int cellVal = board[rr][cc];
                 if (cellVal == 0) continue;
-
-                int expected = r * size + c + 1;
-                if (cellVal == expected && r == checkRow && c == checkCol) {
-                    if (r < targetRow || (r == targetRow && c < targetCol)) {
+                int expected = rr * size + cc + 1;
+                if (cellVal == expected && rr == r && cc == c) {
+                    if (rr < targetRow || (rr == targetRow && cc < targetCol)) {
                         breaksSolved = true;
                         break;
                     }
                 }
             }
         }
+        if (breaksSolved) continue;
 
-        if (!breaksSolved) {
-            hint = { checkRow, checkCol, emptyRow, emptyCol,
-                   "Переместите плитку " + std::to_string(val) };
-            return hint;
-        }
-    }
+        // Если это целевая плитка — приоритет
+        int oldDist = std::abs(r - targetRow) + std::abs(c - targetCol);
+        int newDist = std::abs(emptyRow - targetRow) + std::abs(emptyCol - targetCol);
+        int delta = oldDist - newDist; // положительное — улучшение
 
-    // 8. Если совсем ничего не нашли - любую соседнюю
-    for (auto& d : dirs) {
-        int checkRow = emptyRow + d[0];
-        int checkCol = emptyCol + d[1];
-
-        if (checkRow >= 0 && checkRow < size && checkCol >= 0 && checkCol < size) {
-            int val = board[checkRow][checkCol];
-            if (val != 0) {
-                hint = { checkRow, checkCol, emptyRow, emptyCol,
-                       "Peremestite plitku " + std::to_string(val) };
+        if (val == targetValue) {
+            // Сильный приоритет: сразу возвращаем, если улучшает
+            if (delta > 0) {
+                hint = { r, c, emptyRow, emptyCol, "Отлично! Переместите плитку " + std::to_string(val) + " к цели" };
                 return hint;
+            }
+            else {
+                // пометим как кандидат, но не сразу возвращаем
+                foundTargetTileCandidate = true;
+                if (delta > bestDelta) {
+                    bestDelta = delta;
+                    bestFromR = r; bestFromC = c;
+                    bestToR = emptyRow; bestToC = emptyCol;
+                }
+            }
+        }
+        else {
+            // Обычный кандидат
+            if (delta > bestDelta) {
+                bestDelta = delta;
+                bestFromR = r; bestFromC = c;
+                bestToR = emptyRow; bestToC = emptyCol;
             }
         }
     }
 
-    hint.description = "Net vozmozhnyh hodov";
+    // 6. Если нашли лучший кандидат с улучшением — вернуть его
+    if (bestDelta > 0 && bestFromR != -1) {
+        hint = { bestFromR, bestFromC, bestToR, bestToC, "Переместите плитку " + std::to_string(board[bestFromR][bestFromC]) };
+        return hint;
+    }
+
+    // 7. Если был кандидат-целевой (даже без улучшения) — вернуть его
+    if (foundTargetTileCandidate && bestFromR != -1) {
+        hint = { bestFromR, bestFromC, bestToR, bestToC, "Переместите плитку " + std::to_string(board[bestFromR][bestFromC]) };
+        return hint;
+    }
+
+    // 8. В крайнем случае — вернуть любой соседний допустимый ход
+    if (!neighbors.empty()) {
+        auto p = neighbors.front();
+        hint = { p.first, p.second, emptyRow, emptyCol, "Переместите плитку " + std::to_string(board[p.first][p.second]) };
+        return hint;
+    }
+
+    hint.description = "Нет возможных ходов";
     return hint;
 }
 
@@ -345,9 +313,9 @@ Hint Adapter::getHint(int userId, const std::vector<std::vector<int>>& board) {
 std::string Adapter::getMasteryLevel(double efficiency, int totalGames) {
     if (totalGames < 3) return "Новичок";
 
-    if (efficiency > 0.8) return "Мастер";
-    if (efficiency > 0.6) return "Эксперт";
-    if (efficiency > 0.4) return "Продвинутый";
-    if (efficiency > 0.2) return "Средний";
+    if (efficiency >= 0.85) return "Мастер";
+    if (efficiency >= 0.7) return "Эксперт";
+    if (efficiency >= 0.45) return "Продвинутый";
+    if (efficiency >= 0.25) return "Средний";
     return "Новичок";
 }

@@ -15,13 +15,19 @@ Game::Game(int sessionId, int userId, int gridSize)
     stats_.optimalMoves = 0;
     stats_.efficiencyScore = 0.0;
     stats_.isCompleted = false;
+    stats_.backAndForthMoves = 0;
+    stats_.moveHistory.clear();
+    stats_.patternScore = 0.0;
 }
 
-void Game::start() {
+void Game::start(int shuffleMoves) {
     puzzle_.init();
-    puzzle_.shuffle(100);  // Перемешиваем 100 ходами
+    puzzle_.shuffle(shuffleMoves);  // Перемешиваем указанным числом ходов
     stats_.startTime = std::chrono::system_clock::now();
     stats_.optimalMoves = puzzle_.calculateOptimalMoves();
+    stats_.moveCount = 0;
+    stats_.backAndForthMoves = 0;
+    stats_.moveHistory.clear();
     isActive_ = true;
 }
 
@@ -33,12 +39,9 @@ bool Game::makeMove(int row, int col) {
     if (success) {
         stats_.moveCount = puzzle_.getMoveCount();
 
-        // Проверяем на ход туда-сюда (ошибка)
-        if (stats_.moveHistory.size() >= 2) {
+        // Проверяем на ход туда-сюда: если текущий ход совпадает с предыдущим — считаем это возвратом
+        if (!stats_.moveHistory.empty()) {
             auto lastMove = stats_.moveHistory.back();
-            auto prevMove = stats_.moveHistory[stats_.moveHistory.size() - 2];
-
-            // Если вернули плитку на предыдущее место - это ошибка
             if (lastMove.first == row && lastMove.second == col) {
                 stats_.backAndForthMoves++;
             }
@@ -59,7 +62,7 @@ void Game::end() {
     auto duration = std::chrono::duration<double>(stats_.endTime - stats_.startTime);
     stats_.timeSpent = duration.count();
     stats_.isCompleted = true;
-    stats_.optimalMoves = puzzle_.calculateOptimalMoves();
+    // Не пересчитываем optimalMoves при завершении — оно вычисляется при старте и сохраняется
     stats_.efficiencyScore = calculateEfficiency();
     isActive_ = false;
 

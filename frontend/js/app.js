@@ -188,11 +188,11 @@ async function loadMenuStats() {
         let mastery = 'Новичок';
         let color = '#667eea';
 
-        if (efficiency > 0.8) { mastery = 'Мастер'; color = '#ffd700'; }
-        else if (efficiency > 0.6) { mastery = 'Эксперт'; color = '#38ef7d'; }
-        else if (efficiency > 0.4) { mastery = 'Продвинутый'; color = '#667eea'; }
-        else if (efficiency > 0.2) { mastery = 'Средний'; color = '#ffa500'; }
-        else { mastery = ' Новичок'; color = '#ff6b6b'; }
+        if (efficiency > 0.8) { mastery = '🏆 Мастер'; color = '#ffd700'; }
+        else if (efficiency > 0.6) { mastery = '⭐ Эксперт'; color = '#38ef7d'; }
+        else if (efficiency > 0.4) { mastery = '📈 Продвинутый'; color = '#667eea'; }
+        else if (efficiency > 0.2) { mastery = '📚 Средний'; color = '#ffa500'; }
+        else { mastery = '🌱 Новичок'; color = '#ff6b6b'; }
 
         const masteryEl = document.getElementById('mastery-level');
         if (masteryEl) {
@@ -216,13 +216,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (hintBtn) hintBtn.disabled = !hintsEnabled;
 });
 
-// Загрузка конфигурации
+/// Загрузка конфигурации
 async function loadConfig() {
     try {
         const response = await fetch('/api/config');
         const config = await response.json();
+
+        // Показываем строку сложности и пытаемся синхронизировать select
         if (difficultyElement) difficultyElement.textContent = config.difficulty;
         boardSize = config.gridSize || boardSize;
+
+        // Попытка сопоставить полученную строку сложности с нашим select
+        if (typeof difficultySelect !== 'undefined' && difficultySelect) {
+            const d = (config.difficulty || '').toLowerCase();
+            if (d.includes('очень') && d.includes('л')) difficultySelect.value = 'very_easy';
+            else if (d.includes('лёгк') || d === 'easy') difficultySelect.value = 'easy';
+            else if (d.includes('сред') || d === 'medium') difficultySelect.value = 'medium';
+            else if (d.includes('слож') && d.includes('очень')) difficultySelect.value = 'very_hard';
+            else if (d.includes('слож') || d === 'hard') difficultySelect.value = 'hard';
+            else difficultySelect.value = 'auto';
+            selectedDifficulty = difficultySelect.value;
+        }
+
         // сервер может прислать enableHints
         if (typeof config.enableHints !== 'undefined') {
             hintsEnabled = config.enableHints;
@@ -238,10 +253,44 @@ async function loadConfig() {
 // Создание новой игры
 async function createNewGame() {
     try {
+        // Подготовим отправляемую сложность в форме, которую понимает сервер
+        let difficultyForServer = "auto";
+        switch (selectedDifficulty) {
+            case 'very_easy': difficultyForServer = "VeryEasy"; break;
+            case 'easy': difficultyForServer = "Easy"; break;
+            case 'medium': difficultyForServer = "Medium"; break;
+            case 'hard': difficultyForServer = "Hard"; break;
+            case 'very_hard': difficultyForServer = "VeryHard"; break;
+            default: difficultyForServer = "auto"; break;
+        }
+
+        const body = {
+            difficulty: difficultyForServer,
+            enableHints: !!hintsEnabled
+        };
+
         const response = await fetch('/api/game/create', {
-            method: 'POST'
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
         });
-        const data = await response.json();
+
+        if (!response.ok) {
+            const text = await response.text().catch(() => '');
+            console.error('Server returned error:', response.status, text);
+            showMessage('Ошибка сервера: ' + response.status, 'error');
+            return;
+        }
+
+        let data;
+        try {
+            data = await response.json();
+        } catch (err) {
+            const text = await response.text().catch(() => '');
+            console.error('Invalid JSON from server:', err, text);
+            showMessage('Ошибка сервера: некорректный ответ', 'error');
+            return;
+        }
 
         if (data.success) {
             sessionId = data.sessionId;
@@ -261,7 +310,7 @@ async function createNewGame() {
 
             renderBoard(board2D);
             moves = 0;
-            movesElement.textContent = moves;
+            if (movesElement) movesElement.textContent = moves;
             startTimer();
             showMessage('', '');
         } else {

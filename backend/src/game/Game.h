@@ -26,7 +26,7 @@ class Game {
 public:
     Game(int sessionId, int userId, int gridSize = 4);
 
-    void start();
+    void start(int shuffleMoves = 100);
     bool makeMove(int row, int col);
     void end();
 

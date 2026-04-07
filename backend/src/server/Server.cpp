@@ -123,8 +123,8 @@ bool Server::start() {
         });
 
     // API endpoints
-    svr.Post("/api/game/create", [this](const httplib::Request&, httplib::Response& res) {
-        res.set_content(handleCreateGame(), "application/json; charset=utf-8");
+    svr.Post("/api/game/create", [this](const httplib::Request& req, httplib::Response& res) {
+        res.set_content(handleCreateGame(req.body), "application/json; charset=utf-8");
         });
 
     svr.Post("/api/game/move", [this](const httplib::Request& req, httplib::Response& res) {
@@ -175,13 +175,69 @@ std::string Server::handleStaticFile(const std::string& path) {
     return "<h1>Файл не найден</h1>";
 }
 
-std::string Server::handleCreateGame() {
+std::string Server::handleCreateGame(const std::string& body) {
+    // Парсим необязательные параметры из тела запроса: difficulty (string) и enableHints (bool)
+    auto findString = [&](const std::string& key) -> std::string {
+        std::string search = "\"" + key + "\":";
+        size_t pos = body.find(search);
+        if (pos == std::string::npos) return "";
+        pos += search.length();
+        // Пропускаем пробелы
+        while (pos < body.size() && (body[pos] == ' ' || body[pos] == '\"')) {
+            if (body[pos] == '\"') break;
+            pos++;
+        }
+        if (pos >= body.size() || body[pos] != '\"') {
+            // возможно значение без кавычек
+            size_t end = body.find_first_of(",}", pos);
+            if (end == std::string::npos) return "";
+            return body.substr(pos, end - pos);
+        }
+        pos++; // skip opening quote
+        size_t end = body.find('\"', pos);
+        if (end == std::string::npos) return "";
+        return body.substr(pos, end - pos);
+        };
+
+    auto findBool = [&](const std::string& key) -> std::optional<bool> {
+        std::string search = "\"" + key + "\":";
+        size_t pos = body.find(search);
+        if (pos == std::string::npos) return std::nullopt;
+        pos += search.length();
+        while (pos < body.size() && (body[pos] == ' ')) pos++;
+        if (body.compare(pos, 4, "true") == 0) return true;
+        if (body.compare(pos, 5, "false") == 0) return false;
+        return std::nullopt;
+        };
+
     int userId = 1;
     int sessionId = nextSessionId_++;
     auto config = adapter_->getInitialConfig(userId);
 
+    // Применяем параметры из запроса, если они есть
+    std::string diffStr = findString("difficulty");
+    if (!diffStr.empty() && diffStr != "auto") {
+        // Преобразуем строку сложности в enum
+        DifficultyLevel forced = Adapter::stringToDifficulty(diffStr);
+        config.difficulty = forced;
+        // Простая логика сопоставления gridSize и shuffleMoves с уровнем
+        switch (forced) {
+        case DifficultyLevel::VeryEasy:  config.gridSize = 3; config.shuffleMoves = 50; break;
+        case DifficultyLevel::Easy:      config.gridSize = 4; config.shuffleMoves = 100; break;
+        case DifficultyLevel::Medium:    config.gridSize = 4; config.shuffleMoves = 150; break;
+        case DifficultyLevel::Hard:      config.gridSize = 5; config.shuffleMoves = 200; break;
+        case DifficultyLevel::VeryHard:  config.gridSize = 5; config.shuffleMoves = 300; break;
+        default:                         config.gridSize = 4; config.shuffleMoves = 150; break;
+        }
+    }
+
+    auto hintsOpt = findBool("enableHints");
+    if (hintsOpt.has_value()) {
+        config.enableHints = hintsOpt.value();
+    }
+
     games_[sessionId] = std::make_unique<Game>(sessionId, userId, config.gridSize);
-    games_[sessionId]->start();
+    games_[sessionId]->start(config.shuffleMoves);
 
     auto& puzzle = games_[sessionId]->getPuzzle();
     auto board = puzzle.getBoard();
@@ -199,17 +255,18 @@ std::string Server::handleCreateGame() {
         }
     }
 
-    // Экранируем название сложности
+    // Экранируем название сложности и корректно формируем JSON
     std::string difficulty = Adapter::difficultyToString(config.difficulty);
-    oss << "],\"difficulty\":\"";
+    std::ostringstream diffEsc;
     for (char c : difficulty) {
         switch (c) {
-        case '"': oss << "\\\""; break;
-        case '\\': oss << "\\\\"; break;
-        default: oss << c;
+        case '"': diffEsc << "\\\""; break;
+        case '\\': diffEsc << "\\\\"; break;
+        default: diffEsc << c; break;
         }
     }
-    oss << "\"}";
+    oss << "],\"difficulty\":\"" << diffEsc.str() << "\""
+        << ",\"enableHints\":" << (config.enableHints ? "true" : "false") << "}";
 
     return oss.str();
 }

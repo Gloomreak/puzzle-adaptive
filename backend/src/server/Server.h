@@ -24,11 +24,11 @@ private:
     int nextSessionId_ = 1;
 
     // API обработчики
-    std::string handleCreateGame();
+    std::string handleCreateGame(const std::string& body);
     std::string handleMove(const std::string& body);
     std::string handleStats();
     std::string handleConfig();
-    std::string handleHint(); 
+    std::string handleHint();
     std::string handleMastery();
     std::string handleStaticFile(const std::string& path);
 };
